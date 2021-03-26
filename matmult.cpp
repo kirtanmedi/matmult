@@ -11,12 +11,20 @@ using namespace std;
 int u;
 int v;
 int w;
+int threadCount;
 vector<vector<int> > mat1;
 vector<vector<int> > mat2;
 vector<vector<int> > matmult;
+static int threadNum = 0;
 
 void *compute(void *args) {
-    return NULL;
+    int currRow = threadNum++;
+
+    for (int j = 0; j < w; j++){
+        for (int k = 0; k < v; k++){
+            matmult[currRow][j] += mat1[currRow][k] * mat2[k][j];
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -27,8 +35,8 @@ int main(int argc, char *argv[]) {
     string inputFile1 = argv[4];
     string inputFile2 = argv[5];
     string outputFile = argv[6];
-    int threadCount;
     istringstream(argv[7]) >> threadCount;
+    threadCount = u;
 
     //checking if inputs are negative
     if (u < 0 || v < 0 || w < 0 || threadCount < 1) {
@@ -55,7 +63,7 @@ int main(int argc, char *argv[]) {
 
     matmult.resize(u);
     for (int i = 0; i < u; i++) {
-        matmult.resize(w);
+        matmult[i].resize(w);
     }
 
     //filling first matrix
@@ -82,10 +90,25 @@ int main(int argc, char *argv[]) {
     pthread_t t[threadCount];
 
     for (int i = 0; i < threadCount; i++) {
-        pthread_create(&t[i], NULL, compute, NULL);
+        int p = i;
+        pthread_create(&t[i], NULL, compute, &p);
     }
 
     for (int i = 0; i < threadCount; i++) {
         pthread_join(t[i], NULL);
     }
+
+    //writing to output
+    ofstream fileOut;
+    fileOut.open(outputFile.c_str());
+    for(int i = 0; i < u; i++)
+    {
+        for(int j = 0; j < w; j++)
+        {
+            fileOut << matmult[i][j] << " ";
+        }
+        fileOut << "\n";
+    }
+    fileOut.close();
+    return 0;
 }
